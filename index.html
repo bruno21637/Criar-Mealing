@@ -2,190 +2,974 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Discadora - Gerador de Mailings</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discadora - Gerador de Mailings Inteligente</title>
 
 <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+<!-- Three.js para efeitos 3D -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- Anime.js para animações -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
 
 <style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 body {
-    font-family: Arial, sans-serif;
-    background: #0f172a;
-    color: #e5e7eb;
-    padding: 30px;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0c4a6e 100%);
+    color: #f1f5f9;
+    min-height: 100vh;
+    overflow-x: hidden;
 }
-.container {
-    max-width: 900px;
-    margin: auto;
-    background: #020617;
-    padding: 30px;
-    border-radius: 12px;
-}
-h1 {
-    text-align: center;
-    color: #38bdf8;
-}
-input, select, button {
+
+.background-3d {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
-    padding: 12px;
-    margin-top: 12px;
-    border-radius: 8px;
+    height: 100%;
+    z-index: -1;
+    opacity: 0.3;
 }
-input {
-    background: #1e293b;
-    border: 2px solid #334155;
-    color: #e5e7eb;
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    position: relative;
+    z-index: 1;
 }
-select {
-    background: #1e293b;
-    border: 2px solid #334155;
-    color: #e5e7eb;
+
+.header {
+    text-align: center;
+    margin-bottom: 60px;
+    position: relative;
 }
-button {
-    background: #38bdf8;
-    border: none;
-    font-weight: bold;
+
+.header h1 {
+    font-size: 3.5rem;
+    font-weight: 800;
+    background: linear-gradient(45deg, #38bdf8, #22d3ee, #2dd4bf);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    position: relative;
+    display: inline-block;
+}
+
+.header h1::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+    animation: pulseLine 2s infinite;
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    color: #94a3b8;
+    max-width: 600px;
+    margin: 0 auto 30px;
+    line-height: 1.6;
+}
+
+.dashboard {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-bottom: 40px;
+}
+
+@media (max-width: 768px) {
+    .dashboard {
+        grid-template-columns: 1fr;
+    }
+}
+
+.upload-section, .results-section {
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 40px;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.upload-section:hover, .results-section:hover {
+    border-color: rgba(56, 189, 248, 0.4);
+    transform: translateY(-5px);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+}
+
+.upload-section::before, .results-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #38bdf8, #22d3ee, #2dd4bf);
+}
+
+.section-title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin-bottom: 30px;
+    color: #38bdf8;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.section-title i {
+    font-size: 1.5rem;
+}
+
+.input-group {
+    margin-bottom: 25px;
+    animation: slideUp 0.5s ease-out;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #cbd5e1;
+    font-weight: 500;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.file-input-wrapper {
+    position: relative;
+    height: 120px;
+    border: 3px dashed rgba(56, 189, 248, 0.3);
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(30, 41, 59, 0.5);
+    overflow: hidden;
+}
+
+.file-input-wrapper:hover {
+    border-color: #38bdf8;
+    background: rgba(30, 41, 59, 0.8);
+    transform: scale(1.02);
+}
+
+.file-input-wrapper input[type="file"] {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
     cursor: pointer;
 }
-.status {
-    margin-top: 20px;
-    background: #020617;
-    padding: 15px;
-    border-radius: 8px;
+
+.file-input-content {
+    text-align: center;
+    padding: 20px;
 }
-.success { color: #22c55e; }
-.error { color: #ef4444; }
+
+.file-input-content i {
+    font-size: 2.5rem;
+    color: #38bdf8;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.file-input-content span {
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
+
+.select-wrapper {
+    position: relative;
+}
+
+.select-wrapper select {
+    width: 100%;
+    padding: 16px 20px;
+    background: rgba(30, 41, 59, 0.8);
+    border: 2px solid rgba(56, 189, 248, 0.3);
+    border-radius: 12px;
+    color: #f1f5f9;
+    font-size: 1rem;
+    appearance: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.select-wrapper select:focus {
+    outline: none;
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+}
+
+.select-wrapper::after {
+    content: '▼';
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #38bdf8;
+    pointer-events: none;
+}
+
+.process-btn {
+    width: 100%;
+    padding: 20px;
+    background: linear-gradient(45deg, #38bdf8, #22d3ee);
+    border: none;
+    border-radius: 12px;
+    color: #0f172a;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.process-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: 0.5s;
+}
+
+.process-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(56, 189, 248, 0.3);
+}
+
+.process-btn:hover::before {
+    left: 100%;
+}
+
+.process-btn:disabled {
+    background: #475569;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.status-display {
+    background: rgba(15, 23, 42, 0.8);
+    border-radius: 15px;
+    padding: 30px;
+    margin-top: 30px;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.status-icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    animation: bounce 2s infinite;
+}
+
+.status-text {
+    font-size: 1.1rem;
+    color: #94a3b8;
+}
+
+.results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.result-card {
+    background: rgba(30, 41, 59, 0.8);
+    border-radius: 15px;
+    padding: 25px;
+    text-align: center;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.result-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(56, 189, 248, 0.6);
+    box-shadow: 0 10px 20px rgba(56, 189, 248, 0.2);
+}
+
+.result-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #38bdf8, #22d3ee);
+}
+
+.result-title {
+    font-size: 1rem;
+    color: #cbd5e1;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.result-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #38bdf8;
+    margin: 10px 0;
+}
+
+.result-download {
+    margin-top: 15px;
+    padding: 10px 20px;
+    background: rgba(56, 189, 248, 0.1);
+    border: 2px solid #38bdf8;
+    border-radius: 8px;
+    color: #38bdf8;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.result-download:hover {
+    background: #38bdf8;
+    color: #0f172a;
+}
+
+.processing-animation {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid rgba(56, 189, 248, 0.1);
+    border-top-color: #38bdf8;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.pulse-dots {
+    display: flex;
+    gap: 10px;
+}
+
+.pulse-dots span {
+    width: 12px;
+    height: 12px;
+    background: #38bdf8;
+    border-radius: 50%;
+    animation: pulse 1.4s ease-in-out infinite;
+}
+
+.pulse-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.pulse-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+.footer {
+    text-align: center;
+    margin-top: 60px;
+    padding-top: 30px;
+    border-top: 1px solid rgba(56, 189, 248, 0.2);
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+/* Animações */
+@keyframes pulseLine {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+}
+
+/* Ícones modernos */
+.icon {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+.icon-upload { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%2338bdf8' viewBox='0 0 24 24'%3E%3Cpath d='M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z'/%3E%3C/svg%3E"); }
+.icon-download { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%2338bdf8' viewBox='0 0 24 24'%3E%3Cpath d='M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z'/%3E%3C/svg%3E"); }
+.icon-process { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%2338bdf8' viewBox='0 0 24 24'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z'/%3E%3C/svg%3E"); }
+.icon-success { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%2322c55e' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E"); }
+.icon-error { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23ef4444' viewBox='0 0 24 24'%3E%3Cpath d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E"); }
+
+/* Efeitos de partículas */
+.particle {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.6) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+/* Gradiente animado */
+.animated-gradient {
+    background: linear-gradient(-45deg, #38bdf8, #22d3ee, #2dd4bf, #0ea5e9);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
 </style>
 </head>
 
 <body>
-<div class="container">
-    <h1>📞 Gerador de Mailings – Discadora</h1>
+    <!-- Canvas 3D Background -->
+    <div class="background-3d" id="threeCanvas"></div>
 
-    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls">
-    <select id="exportType">
-        <option value="csv">Exportar CSV</option>
-        <option value="xlsx">Exportar XLSX</option>
-    </select>
-    <button id="processBtn">Processar Remessa</button>
+    <!-- Container Principal -->
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>Discadora Pro</h1>
+            <p class="subtitle">Sistema Inteligente de Geração de Mailings para Campanhas de Cobrança</p>
+        </header>
 
-    <div class="status" id="status">Selecione um arquivo</div>
-</div>
+        <!-- Dashboard -->
+        <div class="dashboard">
+            <!-- Seção de Upload -->
+            <section class="upload-section">
+                <h2 class="section-title">
+                    <span class="icon icon-upload"></span>
+                    Carregar Remessa
+                </h2>
+                
+                <div class="input-group">
+                    <label>Arquivo de Remessa</label>
+                    <div class="file-input-wrapper" id="fileDropArea">
+                        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls">
+                        <div class="file-input-content">
+                            <span class="icon icon-upload" style="width: 48px; height: 48px;"></span>
+                            <span>Arraste seu arquivo aqui ou clique para selecionar</span>
+                            <br>
+                            <small>Formatos suportados: CSV, XLSX, XLS</small>
+                        </div>
+                    </div>
+                </div>
 
-<script>
-// Verificar se XLSX está carregado
-console.log('XLSX disponível:', typeof XLSX !== 'undefined');
+                <div class="input-group">
+                    <label>Formato de Exportação</label>
+                    <div class="select-wrapper">
+                        <select id="exportType">
+                            <option value="xlsx">Excel (XLSX) - Recomendado</option>
+                            <option value="csv">CSV - Separado por vírgulas</option>
+                        </select>
+                    </div>
+                </div>
 
-document.getElementById("processBtn").addEventListener("click", processFile);
+                <button class="process-btn" id="processBtn">
+                    <span class="icon icon-process" style="vertical-align: middle; margin-right: 10px;"></span>
+                    Processar Remessa
+                </button>
+            </section>
 
-function faixaValida(faixa) {
-    if (!faixa) return false;
-    faixa = faixa.toString();
-    return faixa.includes("181-360") || faixa.includes("361-720");
-}
+            <!-- Seção de Resultados -->
+            <section class="results-section">
+                <h2 class="section-title">
+                    <span class="icon icon-download"></span>
+                    Resultados
+                </h2>
 
-function grupoValido(grupo, lista) {
-    return !grupo || lista.includes(grupo.trim());
-}
+                <div class="status-display" id="statusDisplay">
+                    <div class="status-icon">
+                        <span class="icon icon-upload" style="width: 48px; height: 48px;"></span>
+                    </div>
+                    <div class="status-text" id="statusText">
+                        Aguardando arquivo para processamento
+                    </div>
+                    
+                    <div class="processing-animation" id="processingAnimation">
+                        <div class="spinner"></div>
+                        <div class="pulse-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                        <div class="status-text">Processando dados...</div>
+                    </div>
 
-function processFile() {
-    const fileInput = document.getElementById("fileInput");
-    const file = fileInput.files[0];
-    
-    if (!file) {
-        alert("Selecione um arquivo CSV ou XLSX");
-        return;
-    }
+                    <div class="results-grid" id="resultsGrid" style="display: none;">
+                        <div class="result-card" id="extraCard">
+                            <div class="result-title">Mailings Extrajudiciais</div>
+                            <div class="result-value" id="extraCount">0</div>
+                            <div class="result-download" onclick="downloadFile('extra')">
+                                <span class="icon icon-download" style="vertical-align: middle; margin-right: 5px;"></span>
+                                Download
+                            </div>
+                        </div>
+                        
+                        <div class="result-card" id="judicialCard">
+                            <div class="result-title">Mailings Judiciais</div>
+                            <div class="result-value" id="judicialCount">0</div>
+                            <div class="result-download" onclick="downloadFile('judicial')">
+                                <span class="icon icon-download" style="vertical-align: middle; margin-right: 5px;"></span>
+                                Download
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
 
-    document.getElementById("status").innerHTML = "Processando...";
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Sistema de Geração de Mailings © 2024 - Discadora Pro</p>
+            <p>Processamento Inteligente para Campanhas de Cobrança</p>
+        </footer>
+    </div>
 
-    const reader = new FileReader();
-    
-    reader.onload = function(e) {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const wb = XLSX.read(data, { type: "array" });
-            const ws = wb.Sheets[wb.SheetNames[0]];
-            const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+    <script>
+    // Dados globais
+    let processingData = {
+        extra: [],
+        judicial: [],
+        extraFileName: '',
+        judicialFileName: ''
+    };
 
-            let extra = [];
-            let judicial = [];
+    // Elementos DOM
+    const fileInput = document.getElementById('fileInput');
+    const processBtn = document.getElementById('processBtn');
+    const statusDisplay = document.getElementById('statusDisplay');
+    const statusText = document.getElementById('statusText');
+    const processingAnimation = document.getElementById('processingAnimation');
+    const resultsGrid = document.getElementById('resultsGrid');
+    const extraCount = document.getElementById('extraCount');
+    const judicialCount = document.getElementById('judicialCount');
+    const extraCard = document.getElementById('extraCard');
+    const judicialCard = document.getElementById('judicialCard');
+    const fileDropArea = document.getElementById('fileDropArea');
 
-            rows.forEach(r => {
-                const cpf = r["CPF"] || r["cpf"];
-                const saldo = parseFloat(r["Saldo"] || r["saldo"] || 0);
-                const flagJud = String(r["Flag Judicial"] || r["flag judicial"] || "").toUpperCase();
-                const faixa = r["Faixa_Atraso"] || r["Faixa Atraso"] || r["faixa_atraso"];
-                const grupo = r["Grupo Gestor"] || r["grupo gestor"] || r["Grupo_Gestor"];
-                const acordo = String(r["Acordo"] || r["acordo"] || "").toUpperCase();
-                const preju = String(r["Flag Preju"] || r["flag preju"] || "").toUpperCase();
-                const contratos = parseInt(r["Contratos Sem acordo"] || r["contratos sem acordo"] || 0);
+    // Inicializar efeitos 3D
+    init3DBackground();
 
-                if (!cpf || acordo !== "SEM ACORDO" || preju === "S" || !faixaValida(faixa)) return;
+    // Configurar área de drop
+    setupFileDrop();
 
-                // EXTRAJUDICIAL
-                if (
-                    saldo > 5000 &&
-                    flagJud === "EXTRA" &&
-                    contratos > 0 &&
-                    grupoValido(grupo, ["AILOS - EXTRAJUDICIAL", "AILOS - JUDICIAL"])
-                ) {
-                    extra.push([cpf]);
-                }
+    // Event Listeners
+    fileInput.addEventListener('change', handleFileSelect);
+    processBtn.addEventListener('click', processFile);
 
-                // JUDICIAL
-                if (
-                    saldo > 25000 &&
-                    flagJud === "JUDICIAL" &&
-                    grupoValido(grupo, ["AILOS - EXTRAJUDICIAL", "AILOS - JUDICIAL", "AILOS - ESPECIAIS"])
-                ) {
-                    judicial.push([cpf]);
-                }
-            });
-
-            // Exportar arquivos
-            if (extra.length > 0) {
-                exportFile(extra, "mailing_extrajudicial");
-            }
-            if (judicial.length > 0) {
-                exportFile(judicial, "mailing_judicial");
-            }
-
-            document.getElementById("status").innerHTML = 
-                `<div class="success">
-                    ✔ Processamento concluído<br>
-                    Extrajudicial: ${extra.length} CPFs<br>
-                    Judicial: ${judicial.length} CPFs
-                </div>`;
-
-        } catch (error) {
-            console.error("Erro:", error);
-            document.getElementById("status").innerHTML = 
-                `<div class="error">❌ Erro no processamento: ${error.message}</div>`;
+    function handleFileSelect(e) {
+        const file = e.target.files[0];
+        if (file) {
+            updateStatus(`Arquivo selecionado: ${file.name}`, 'success');
+            fileDropArea.style.borderColor = '#38bdf8';
+            fileDropArea.style.background = 'rgba(56, 189, 248, 0.1)';
         }
-    };
-
-    reader.onerror = function() {
-        document.getElementById("status").innerHTML = 
-            `<div class="error">❌ Erro ao ler o arquivo</div>`;
-    };
-
-    reader.readAsArrayBuffer(file);
-}
-
-function exportFile(data, name) {
-    const type = document.getElementById("exportType").value;
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Mailing");
-
-    const fileName = name + "." + type;
-    
-    if (type === "csv") {
-        XLSX.writeFile(wb, fileName, { bookType: "csv" });
-    } else {
-        XLSX.writeFile(wb, fileName);
     }
-}
-</script>
+
+    function setupFileDrop() {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            fileDropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            fileDropArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            fileDropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        fileDropArea.addEventListener('drop', handleDrop, false);
+
+        function highlight() {
+            fileDropArea.style.borderColor = '#38bdf8';
+            fileDropArea.style.background = 'rgba(56, 189, 248, 0.2)';
+            fileDropArea.style.transform = 'scale(1.02)';
+        }
+
+        function unhighlight() {
+            fileDropArea.style.borderColor = 'rgba(56, 189, 248, 0.3)';
+            fileDropArea.style.background = 'rgba(30, 41, 59, 0.5)';
+            fileDropArea.style.transform = 'scale(1)';
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            fileInput.files = files;
+            handleFileSelect({ target: { files } });
+        }
+    }
+
+    function updateStatus(message, type = 'info') {
+        statusText.innerHTML = message;
+        
+        const statusIcon = statusDisplay.querySelector('.status-icon');
+        statusIcon.innerHTML = '';
+        
+        if (type === 'success') {
+            statusIcon.innerHTML = '<span class="icon icon-success" style="width: 48px; height: 48px;"></span>';
+        } else if (type === 'error') {
+            statusIcon.innerHTML = '<span class="icon icon-error" style="width: 48px; height: 48px;"></span>';
+        } else {
+            statusIcon.innerHTML = '<span class="icon icon-upload" style="width: 48px; height: 48px;"></span>';
+        }
+    }
+
+    function showProcessing() {
+        processingAnimation.style.display = 'flex';
+        statusText.style.display = 'none';
+        resultsGrid.style.display = 'none';
+    }
+
+    function showResults() {
+        processingAnimation.style.display = 'none';
+        statusText.style.display = 'none';
+        resultsGrid.style.display = 'grid';
+    }
+
+    function updateCounts(extra, judicial) {
+        // Animar contadores
+        animateCounter(extraCount, extra);
+        animateCounter(judicialCount, judicial);
+        
+        // Animar cards
+        anime({
+            targets: [extraCard, judicialCard],
+            scale: [0.9, 1],
+            opacity: [0, 1],
+            duration: 800,
+            easing: 'easeOutElastic(1, .8)',
+            delay: anime.stagger(200)
+        });
+    }
+
+    function animateCounter(element, target) {
+        anime({
+            targets: element,
+            innerHTML: [0, target],
+            round: 1,
+            duration: 1500,
+            easing: 'easeOutExpo'
+        });
+    }
+
+    function faixaValida(faixa) {
+        if (!faixa) return false;
+        const faixaStr = faixa.toString();
+        return faixaStr.includes("181-360") || faixaStr.includes("361-720");
+    }
+
+    function grupoValido(grupo, lista) {
+        if (!grupo) return false;
+        return lista.includes(grupo.trim());
+    }
+
+    async function processFile() {
+        const file = fileInput.files[0];
+        if (!file) {
+            updateStatus('❌ Selecione um arquivo primeiro', 'error');
+            return;
+        }
+
+        showProcessing();
+        processBtn.disabled = true;
+
+        try {
+            const data = await readFile(file);
+            const results = await processData(data);
+            
+            processingData.extra = results.extra;
+            processingData.judicial = results.judicial;
+            
+            showResults();
+            updateCounts(results.extra.length, results.judicial.length);
+            
+            // Gerar arquivos
+            processingData.extraFileName = exportFile(results.extra, "mailing_extrajudicial", false);
+            processingData.judicialFileName = exportFile(results.judicial, "mailing_judicial", false);
+            
+            updateStatus('✅ Processamento concluído com sucesso!', 'success');
+            
+        } catch (error) {
+            console.error('Erro:', error);
+            updateStatus(`❌ Erro: ${error.message}`, 'error');
+        } finally {
+            processBtn.disabled = false;
+        }
+    }
+
+    function readFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(new Uint8Array(e.target.result));
+            reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    async function processData(data) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const wb = XLSX.read(data, { type: "array" });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+
+                const extra = [];
+                const judicial = [];
+
+                rows.forEach(r => {
+                    const cpf = r["CPF"] || r["cpf"];
+                    const saldo = parseFloat(r["Saldo"] || r["saldo"] || 0);
+                    const flagJud = String(r["Flag Judicial"] || r["flag judicial"] || "").toUpperCase();
+                    const faixa = r["Faixa_Atraso"] || r["Faixa Atraso"] || r["faixa_atraso"];
+                    const grupo = r["Grupo Gestor"] || r["grupo gestor"] || r["Grupo_Gestor"];
+                    const acordo = String(r["Acordo"] || r["acordo"] || "").toUpperCase();
+                    const preju = String(r["Flag Preju"] || r["flag preju"] || "").toUpperCase();
+                    const contratos = parseInt(r["Contratos Sem acordo"] || r["contratos sem acordo"] || 0);
+
+                    if (!cpf || acordo !== "SEM ACORDO" || preju === "S" || !faixaValida(faixa)) return;
+
+                    // EXTRAJUDICIAL
+                    if (saldo > 5000 && flagJud === "EXTRA" && contratos > 0 &&
+                        grupoValido(grupo, ["AILOS - EXTRAJUDICIAL", "AILOS - JUDICIAL"])) {
+                        extra.push([cpf]);
+                    }
+
+                    // JUDICIAL
+                    if (saldo > 25000 && flagJud === "JUDICIAL" &&
+                        grupoValido(grupo, ["AILOS - EXTRAJUDICIAL", "AILOS - JUDICIAL", "AILOS - ESPECIAIS"])) {
+                        judicial.push([cpf]);
+                    }
+                });
+
+                resolve({ extra, judicial });
+            }, 1500); // Simulação de processamento
+        });
+    }
+
+    function exportFile(data, name, download = true) {
+        const type = document.getElementById("exportType").value;
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Mailing");
+
+        const timestamp = new Date().toISOString().slice(0,19).replace(/[:]/g, '-');
+        const fileName = `${name}_${timestamp}.${type}`;
+        
+        if (download) {
+            if (type === "csv") {
+                XLSX.writeFile(wb, fileName, { bookType: "csv" });
+            } else {
+                XLSX.writeFile(wb, fileName);
+            }
+        }
+        
+        return fileName;
+    }
+
+    function downloadFile(type) {
+        const data = type === 'extra' ? processingData.extra : processingData.judicial;
+        const name = type === 'extra' ? 'mailing_extrajudicial' : 'mailing_judicial';
+        exportFile(data, name, true);
+    }
+
+    function init3DBackground() {
+        // Configuração básica do Three.js para efeitos 3D
+        try {
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.getElementById('threeCanvas').appendChild(renderer.domElement);
+            
+            // Geometrias flutuantes
+            const geometries = [];
+            const colors = [0x38bdf8, 0x22d3ee, 0x2dd4bf, 0x0ea5e9];
+            
+            for (let i = 0; i < 15; i++) {
+                const geometry = i % 3 === 0 ? new THREE.IcosahedronGeometry(Math.random() * 0.5 + 0.2, 0) :
+                               i % 3 === 1 ? new THREE.TorusGeometry(Math.random() * 0.3 + 0.1, 0.05, 8, 20) :
+                               new THREE.OctahedronGeometry(Math.random() * 0.4 + 0.2, 0);
+                
+                const material = new THREE.MeshBasicMaterial({
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    transparent: true,
+                    opacity: 0.1,
+                    wireframe: true
+                });
+                
+                const mesh = new THREE.Mesh(geometry, material);
+                
+                mesh.position.x = (Math.random() - 0.5) * 20;
+                mesh.position.y = (Math.random() - 0.5) * 20;
+                mesh.position.z = (Math.random() - 0.5) * 20;
+                
+                mesh.rotation.x = Math.random() * Math.PI;
+                mesh.rotation.y = Math.random() * Math.PI;
+                
+                geometries.push({
+                    mesh,
+                    speed: Math.random() * 0.01 + 0.005,
+                    rotationSpeed: Math.random() * 0.02 + 0.01
+                });
+                
+                scene.add(mesh);
+            }
+            
+            camera.position.z = 5;
+            
+            // Animação
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                geometries.forEach(obj => {
+                    obj.mesh.rotation.x += obj.rotationSpeed * 0.5;
+                    obj.mesh.rotation.y += obj.rotationSpeed;
+                    obj.mesh.position.y += Math.sin(Date.now() * obj.speed) * 0.01;
+                });
+                
+                renderer.render(scene, camera);
+            }
+            
+            animate();
+            
+            // Responsividade
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        } catch (error) {
+            console.log('Three.js não disponível, usando fallback CSS');
+            createParticleEffect();
+        }
+    }
+
+    function createParticleEffect() {
+        const canvas = document.getElementById('threeCanvas');
+        for (let i = 0; i < 50; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.width = `${Math.random() * 100 + 50}px`;
+            particle.style.height = particle.style.width;
+            particle.style.left = `${Math.random() * 100}%`;
+            particle.style.top = `${Math.random() * 100}%`;
+            canvas.appendChild(particle);
+            
+            anime({
+                targets: particle,
+                translateX: () => anime.random(-100, 100),
+                translateY: () => anime.random(-100, 100),
+                duration: () => anime.random(5000, 15000),
+                opacity: [0.3, 0.1, 0.3],
+                easing: 'linear',
+                loop: true,
+                direction: 'alternate'
+            });
+        }
+    }
+
+    // Inicializar animações de entrada
+    anime({
+        targets: '.header h1, .subtitle',
+        translateY: [30, 0],
+        opacity: [0, 1],
+        duration: 1000,
+        easing: 'easeOutExpo',
+        delay: 300
+    });
+
+    anime({
+        targets: '.upload-section, .results-section',
+        translateY: [50, 0],
+        opacity: [0, 1],
+        duration: 800,
+        easing: 'easeOutExpo',
+        delay: anime.stagger(200)
+    });
+
+    // Verificar se XLSX está carregado
+    if (typeof XLSX === 'undefined') {
+        updateStatus('❌ Biblioteca XLSX não carregada', 'error');
+        processBtn.disabled = true;
+    } else {
+        console.log('✅ Biblioteca XLSX carregada com sucesso');
+    }
+    </script>
 </body>
 </html>

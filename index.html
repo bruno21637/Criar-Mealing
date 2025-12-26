@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Discadora - Gerador de Mailings</title>
+
+<script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #0f172a;
+    color: #e5e7eb;
+    padding: 30px;
+}
+.container {
+    max-width: 900px;
+    margin: auto;
+    background: #020617;
+    padding: 30px;
+    border-radius: 12px;
+}
+h1 {
+    text-align: center;
+    color: #38bdf8;
+}
+input, select, button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 12px;
+    border-radius: 8px;
+}
+input {
+    background: #1e293b;
+    border: 2px solid #334155;
+    color: #e5e7eb;
+}
+select {
+    background: #1e293b;
+    border: 2px solid #334155;
+    color: #e5e7eb;
+}
+button {
+    background: #38bdf8;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+}
+.status {
+    margin-top: 20px;
+    background: #020617;
+    padding: 15px;
+    border-radius: 8px;
+}
+.success { color: #22c55e; }
+.error { color: #ef4444; }
+</style>
+</head>
+
+<body>
+<div class="container">
+    <h1>📞 Gerador de Mailings – Discadora</h1>
+
+    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls">
+    <select id="exportType">
+        <option value="csv">Exportar CSV</option>
+        <option value="xlsx">Exportar XLSX</option>
+    </select>
+    <button id="processBtn">Processar Remessa</button>
+
+    <div class="status" id="status">Selecione um arquivo</div>
+</div>
+
+<script>
+// Verificar se XLSX está carregado
+console.log('XLSX disponível:', typeof XLSX !== 'undefined');
+
+document.getElementById("processBtn").addEventListener("click", processFile);
+
+function faixaValida(faixa) {
+    if (!faixa) return false;
+    faixa = faixa.toString();
+    return faixa.includes("181-360") || faixa.includes("361-720");
+}
+
+function grupoValido(grupo, lista) {
+    return !grupo || lista.includes(grupo.trim());
+}
+
+function processFile() {
+    const fileInput = document.getElementById("fileInput");
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert("Selecione um arquivo CSV ou XLSX");
+        return;
+    }
+
+    document.getElementById("status").innerHTML = "Processando...";
+
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const wb = XLSX.read(data, { type: "array" });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+
+            let extra = [];
+            let judicial = [];
+
+            rows.forEach(r => {
+                const cpf = r["CPF"] || r["cpf"];
+                const saldo = parseFloat(r["Saldo"] || r["saldo"] || 0);
+                const flagJud = String(r["Flag Judicial"] || r["flag judicial"] || "").toUpperCase();
+                const faixa = r["Faixa_Atraso"] || r["Faixa Atraso"] || r["faixa_atraso"];
+                const grupo = r["Grupo Gestor"] || r["grupo gestor"] || r["Grupo_Gestor"];
+                const acordo = String(r["Acordo"] || r["acordo"] || "").toUpperCase();
+                const preju = String(r["Flag Preju"] || r["flag preju"] || "").toUpperCase();
+                const contratos = parseInt(r["Contratos Sem acordo"] || r["contratos sem acordo"] || 0);
+
+                if (!cpf || acordo !== "SEM ACORDO" || preju === "S" || !faixaValida(faixa)) return;
+
+                // EXTRAJUDICIAL
+                if (
+                    saldo > 5000 &&
+                    flagJud === "EXTRA" &&
+                    contratos > 0 &&
+                    grupoValido(grupo, ["AILOS - EXTRAJUDICIAL", "AILOS - JUDICIAL"])
+                ) {
+                    extra.push([cpf]);
+                }
+
+                // JUDICIAL
+                if (
+                    saldo > 25000 &&
+                    flagJud === "JUDICIAL" &&
+                    grupoValido(grupo, ["AILOS - EXTRAJUDICIAL", "AILOS - JUDICIAL", "AILOS - ESPECIAIS"])
+                ) {
+                    judicial.push([cpf]);
+                }
+            });
+
+            // Exportar arquivos
+            if (extra.length > 0) {
+                exportFile(extra, "mailing_extrajudicial");
+            }
+            if (judicial.length > 0) {
+                exportFile(judicial, "mailing_judicial");
+            }
+
+            document.getElementById("status").innerHTML = 
+                `<div class="success">
+                    ✔ Processamento concluído<br>
+                    Extrajudicial: ${extra.length} CPFs<br>
+                    Judicial: ${judicial.length} CPFs
+                </div>`;
+
+        } catch (error) {
+            console.error("Erro:", error);
+            document.getElementById("status").innerHTML = 
+                `<div class="error">❌ Erro no processamento: ${error.message}</div>`;
+        }
+    };
+
+    reader.onerror = function() {
+        document.getElementById("status").innerHTML = 
+            `<div class="error">❌ Erro ao ler o arquivo</div>`;
+    };
+
+    reader.readAsArrayBuffer(file);
+}
+
+function exportFile(data, name) {
+    const type = document.getElementById("exportType").value;
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Mailing");
+
+    const fileName = name + "." + type;
+    
+    if (type === "csv") {
+        XLSX.writeFile(wb, fileName, { bookType: "csv" });
+    } else {
+        XLSX.writeFile(wb, fileName);
+    }
+}
+</script>
+</body>
+</html>
